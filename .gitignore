@@ -18,3 +18,4 @@ ops/nginx/*.map.tmp
 *.pem
 *.key
 !.vnc/self.crt
+ops/run/
