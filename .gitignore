@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.next/
+out/
+build/
+*.log
+.env
+.env.local
+.env.*.local
+!.env.example
+.DS_Store
+*.tsbuildinfo
+coverage/
+.vscode/
+.idea/
+# runtime artifacts
+ops/nginx/*.map.tmp
+*.pem
+*.key
+!.vnc/self.crt

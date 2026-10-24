@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Minimal kiosk theme: no decorations, no panel, no keybindings that could
+     hand a user a shell or close the session. -->
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+  <theme>
+    <name>Clearlooks</name>
+    <titleLayout></titleLayout>
+    <keepBorder>no</keepBorder>
+    <animateIconify>no</animateIconify>
+    <font place="ActiveWindow"><name>DejaVu Sans</name><size>8</size></font>
+  </theme>
+  <desktops><number>1</number><firstdesktop>1</firstdesktop><popupTime>0</popupTime></desktops>
+  <resize><drawContents>no</drawContents></resize>
+  <placement><policy>Smart</policy><center>yes</center></placement>
+  <applications>
+    <!-- Full-screen the game window when it maps -->
+    <application class="*" name="*">
+      <decor>no</decor>
+      <maximized>no</maximized>
+      <position force="no"/>
+    </application>
+  </applications>
+  <keyboard>
+    <!-- Deliberately no terminal / close / exit bindings -->
+    <chainQuitKey>C-g Q</chainQuitKey>
+  </keyboard>
+  <mouse>
+    <dragThreshold>8</dragThreshold>
+  </mouse>
+</openbox_config>

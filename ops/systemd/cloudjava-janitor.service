@@ -1,0 +1,29 @@
+[Unit]
+Description=CloudJava VNC JanitorAgent (expired container reaper)
+Documentation=file:///opt/cloudjava-vnc/docs/agents.md
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cloudjava
+Group=docker
+WorkingDirectory=/opt/cloudjava-vnc/backend
+EnvironmentFile=/opt/cloudjava-vnc/backend/.env
+# DOCKER_DRIVER must be "docker"; the daemon refuses to run in mock mode.
+Environment=DOCKER_DRIVER=docker
+ExecStart=/usr/bin/node agent-daemon.js
+Restart=always
+RestartSec=10
+# Hardening: the janitor only needs the docker socket and nothing else
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/run/docker.sock /opt/cloudjava-vnc/backend
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

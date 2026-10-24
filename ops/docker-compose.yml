@@ -1,0 +1,122 @@
+# CloudJava VNC — control plane stack.
+#
+#   postgres  : users, instances, orders, audit log
+#   redis     : session/metrics cache + pub/sub event bus
+#   api       : backend control plane (also mounts the docker socket, because
+#               it is the process that actually creates worker containers)
+#   dashboard : Next.js frontend
+#   nginx     : TLS edge; also owns the generated upstream map volume
+#
+# Worker containers are NOT defined here — they are created at runtime, one per
+# user session, by ProvisionerAgent.
+name: cloudjava-vnc
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cloudjava
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: cloudjava
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../backend/src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cloudjava -d cloudjava"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [cloudjava-internal]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [cloudjava-internal]
+
+  api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      DATABASE_DRIVER: postgres
+      DATABASE_URL: postgres://cloudjava:${POSTGRES_PASSWORD}@postgres:5432/cloudjava
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      VNC_TOKEN_SECRET: ${VNC_TOKEN_SECRET:?set VNC_TOKEN_SECRET in .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://vnc.example.com}
+      DOCKER_DRIVER: docker
+      DOCKER_SOCKET: /var/run/docker.sock
+      WORKER_IMAGE: ${WORKER_IMAGE:-cloudjava-worker:latest}
+      PROXY_MODE: nginx
+      NGINX_MAP_FILE: /etc/nginx/conf.d/cloudjava_upstreams.map
+      NGINX_RELOAD_CMD: nginx -s reload
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-mock}
+      MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY:-}
+      XENDIT_CALLBACK_TOKEN: ${XENDIT_CALLBACK_TOKEN:-}
+      TRIPAY_PRIVATE_KEY: ${TRIPAY_PRIVATE_KEY:-}
+      TRIPAY_MERCHANT_CODE: ${TRIPAY_MERCHANT_CODE:-}
+    volumes:
+      # Docker socket: required to create worker containers. This is the single
+      # most privileged mount in the stack — treat this container as host-root
+      # equivalent and never expose its API directly.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Shared with nginx so a map rewrite is visible before the reload
+      - nginx_conf:/etc/nginx/conf.d
+    expose: ["4000"]
+    networks: [cloudjava-internal]
+
+  dashboard:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE: ${PUBLIC_BASE_URL:-https://vnc.example.com}
+    expose: ["3000"]
+    networks: [cloudjava-internal]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on: [api, dashboard]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/cloudjava.conf:/etc/nginx/conf.d/cloudjava.conf:ro
+      - nginx_conf:/etc/nginx/conf.d
+      - certbot_www:/var/www/certbot:ro
+      - letsencrypt:/etc/letsencrypt:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks: [cloudjava-internal]
+
+volumes:
+  pgdata:
+  nginx_conf:
+  certbot_www:
+  letsencrypt:
+
+networks:
+  # Workers get their own bridge; the internal network is not routable from
+  # them, so a compromised instance cannot reach postgres or redis.
+  cloudjava-internal:
+    driver: bridge
