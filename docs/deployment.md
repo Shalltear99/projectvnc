@@ -15,8 +15,8 @@
 
 ### 2.1 Clone Repository & Environment Setup
 ```bash
-git clone https://github.com/your-org/cloudjava-vnc.git
-cd cloudjava-vnc
+git clone https://github.com/Shalltear99/projectvnc.git
+cd projectvnc
 cp .env.example .env
 ```
 
