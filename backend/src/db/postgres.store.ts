@@ -130,6 +130,14 @@ export class PostgresStore implements Store {
     }
   }
 
+  async updateUserRole(id: string, role: UserRole): Promise<User | null> {
+    const { rows } = await this.pool.query(
+      'UPDATE users SET role = $2 WHERE id = $1 RETURNING *',
+      [id, role],
+    );
+    return rows.length ? mapUser(rows[0] as Row) : null;
+  }
+
   async findUserByEmail(email: string): Promise<User | null> {
     const { rows } = await this.pool.query(
       'SELECT * FROM users WHERE email = lower($1) LIMIT 1',

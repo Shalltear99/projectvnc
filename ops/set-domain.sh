@@ -20,6 +20,18 @@ RUN="$ROOT/ops/run"
 NGINX_DIR="${NGINX_DIR:-/tmp/cjrun}"
 mkdir -p "$RUN"
 
+# Optional local overrides (the admin seed, driver choices), kept in the
+# gitignored run dir so a restart keeps the same admin account without the
+# operator re-exporting secrets in every shell.
+#
+# It is a FALLBACK, not an override: plain sourcing would silently win over an
+# explicit `ADMIN_PASSWORD=... ./ops/set-domain.sh`, which is the opposite of
+# what an operator expects. So only load it when nothing was exported.
+if [ -z "${ADMIN_EMAIL:-}" ] && [ -f "$RUN/local.env" ]; then
+    # shellcheck disable=SC1090
+    . "$RUN/local.env"
+fi
+
 if [ $# -ne 1 ]; then
     echo "usage: $0 <domain> | --local | --same-origin" >&2
     exit 2
@@ -100,6 +112,8 @@ PAYMENT_PROVIDER="${PAYMENT_PROVIDER:-mock}" \
 PORT=4000 \
 LOG_LEVEL="${LOG_LEVEL:-info}" \
 PUBLIC_BASE_URL="$ORIGIN" \
+ADMIN_EMAIL="${ADMIN_EMAIL:-}" \
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-}" \
 PROXY_MODE="${PROXY_MODE:-nginx}" \
 NGINX_MAP_FILE="${NGINX_MAP_FILE:-$NGINX_DIR/conf.d/cloudjava_upstreams.map}" \
 NGINX_RELOAD_CMD="${NGINX_RELOAD_CMD:-$NGINX_DIR/reload.sh}" \

@@ -39,6 +39,8 @@ export interface Store {
   createUser(input: NewUser): Promise<User>;
   findUserByEmail(email: string): Promise<User | null>;
   findUserById(id: string): Promise<User | null>;
+  /** Used by the admin bootstrap to promote an existing account idempotently. */
+  updateUserRole(id: string, role: UserRole): Promise<User | null>;
 
   createInstance(input: NewInstance): Promise<Instance>;
   getInstance(id: string): Promise<Instance | null>;

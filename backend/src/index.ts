@@ -16,12 +16,17 @@ import { getPortAllocator } from './services/ports';
 import { getProxyRouter } from './services/proxy-router';
 import { startAllAgents, stopAllAgents } from './agents';
 import { closeRateLimitRedis } from './middleware/rate-limit';
+import { ensureAdminUser } from './services/admin-bootstrap';
 
 let server: Server | null = null;
 let shuttingDown = false;
 
 async function boot(): Promise<void> {
   await initStore();
+
+  // Seed the admin account (if configured) before the HTTP listener opens, so a
+  // client can never observe the API in a half-provisioned state.
+  await ensureAdminUser();
 
   // Rebuild in-memory reservations from the rows that are still live.
   await getPortAllocator().sync();

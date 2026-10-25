@@ -3,7 +3,7 @@
  * data lost on restart; never selectable in production (config guards it).
  */
 import { randomUUID } from 'node:crypto';
-import type { Instance, InstanceStatus, Order, User } from '../types';
+import type { Instance, InstanceStatus, Order, User, UserRole } from '../types';
 import type { NewInstance, NewOrder, NewUser, Store } from './store';
 
 const clone = <T>(v: T): T => structuredClone(v);
@@ -40,6 +40,13 @@ export class MemoryStore implements Store {
       suspendedAt: null,
     };
     this.users.set(user.id, user);
+    return clone(user);
+  }
+
+  async updateUserRole(id: string, role: UserRole): Promise<User | null> {
+    const user = this.users.get(id);
+    if (!user) return null;
+    user.role = role;
     return clone(user);
   }
 

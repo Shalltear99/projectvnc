@@ -28,6 +28,21 @@ const schema = z.object({
   DATABASE_URL: z.string().optional(),
   REDIS_URL: z.string().optional(),
 
+  // Optional admin seed, applied at boot (see services/admin-bootstrap.ts).
+  // Unset is the normal case; there is deliberately no HTTP route that can
+  // grant the admin role.
+  // Empty string must mean "unset", not "invalid email": `ADMIN_EMAIL=` in a
+  // compose file or shell export is a normal way to disable the seed, and
+  // failing validation there would take the whole API down at boot.
+  ADMIN_EMAIL: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.string().email().optional(),
+  ),
+  ADMIN_PASSWORD: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.string().optional(),
+  ),
+
   JWT_SECRET: z.string().min(16).default('dev-only-change-me-32-characters-minimum'),
   JWT_EXPIRES_IN: z.string().default('7d'),
   VNC_TOKEN_SECRET: z.string().min(16).default('dev-only-vnc-token-secret-change-me'),
@@ -117,6 +132,11 @@ export const config = {
   // sentinel the rest of the code checks for; see `config.publicBaseUrl === ''`.
   publicBaseUrl:
     env.PUBLIC_BASE_URL === 'same-origin' ? '' : env.PUBLIC_BASE_URL.replace(/\/+$/, ''),
+
+  admin: {
+    email: env.ADMIN_EMAIL,
+    password: env.ADMIN_PASSWORD,
+  },
 
   db: {
     driver: env.DATABASE_DRIVER,
