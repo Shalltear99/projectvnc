@@ -44,6 +44,17 @@ if [ ! -x "$JAVA_HOME/bin/java" ]; then
 fi
 export PATH="$JAVA_HOME/bin:$PATH"
 
+# Seed the game volume on first boot.
+#
+# /opt/game is a per-instance named volume, so every new instance starts with it
+# empty even though the image ships a game library in /opt/games-defaults. Only
+# copy when empty: re-seeding on every restart would silently overwrite whatever
+# the user put there.
+if [ -d /opt/games-defaults ] && [ -z "$(ls -A /opt/game 2>/dev/null)" ]; then
+    cp -a /opt/games-defaults/. /opt/game/ 2>/dev/null \
+        && echo "[entrypoint] seeded /opt/game from bundled defaults"
+fi
+
 # Stale lock files from a previous incarnation of this container
 rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 2>/dev/null || true
 

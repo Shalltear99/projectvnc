@@ -34,7 +34,21 @@ fi
 JAR="$(ls /opt/game/*.jar 2>/dev/null | head -n1 || true)"
 if [ -n "$JAR" ]; then
     if [ -f /opt/emulator/freej2me.jar ]; then
-        exec java -jar /opt/emulator/freej2me.jar "$JAR"
+        # -noverify
+        #   The Ksatria jar (and the stock original it was built from) carries
+        #   v52 classes with no StackMapTable, so a strict JVM dies with
+        #   VerifyError inside the MIDlet constructor before anything paints.
+        #   Verified: without this the window stays blank white.
+        #
+        # -Dfile.encoding BEFORE -jar
+        #   FreeJ2ME self-restarts when the platform encoding is not
+        #   ISO_8859_1, and that restart re-execs java WITHOUT the jar argument
+        #   ("java -jar -Dfile.encoding=... freej2me.jar" — the -D lands after
+        #   -jar, so it is an app arg, not a JVM flag). Result: a blank emulator
+        #   shell and no game. Setting the encoding up front prevents the
+        #   restart entirely.
+        exec java -noverify -Dfile.encoding=ISO_8859_1 \
+            -jar /opt/emulator/freej2me.jar "$JAR"
     fi
     exec java -jar "$JAR"
 fi
