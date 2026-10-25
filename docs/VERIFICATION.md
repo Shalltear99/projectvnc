@@ -206,6 +206,32 @@ a redirect. Defects found while building and exercising it:
 Hiding `#top_bar` also removes noVNC's own Ctrl+Alt+Del button, so the overlay
 carries a `CAD` button that calls `rfb.sendCtrlAltDel()`.
 
+## Fitting the emulator to the screen (desktop and mobile)
+
+`fit-window.sh` scales the emulator to the desktop. Defects found while making
+that work on a phone:
+
+- **Scaling was never enabled.** `useVncSession` sent `resize=scale`, but
+  `vnc_lite.html` read a parameter called `scale`. Neither scaling nor remote
+  resize was ever switched on; the parameter simply did nothing.
+- **A fullscreen window is worse than a small one.** FreeJ2ME letterboxes the
+  LCD inside its own frame and paints the leftover with the LCD component's
+  white background, so maximising gives a white canvas with a small game in the
+  middle. Sizing the window to the game's aspect ratio leaves no leftover area.
+- **The AWT menu bar is inside the window.** Fitting the game to the full
+  desktop height pushes the bottom `MENU_BAR_PX` rows off-screen, where the WM
+  clamps and crops them.
+- **FreeJ2ME undoes the fit.** It calls `setSize()` again when its settings are
+  applied, so a fitter that keys off "what I last requested" applies once, gets
+  overridden, and never retries. Compare the window's actual geometry.
+- **A portrait phone saw a thin strip.** The desktop stayed 1280x720 landscape,
+  so scaling it into a 9:19.5 viewport made the game tiny. The client now sends
+  `resize=remote` (RFB SetDesktopSize, honoured by TigerVNC over RandR) so the
+  desktop matches the canvas, and `fit-window.sh` refits the game to it.
+- **Desktop size is server state shared by clients.** Resizing only for phones
+  left the desktop portrait for the next desktop browser. Every client now
+  asserts its own size, so the most recent connection wins.
+
 ## Known limits
 
 - Single-node control plane; 50 concurrent streams per node (PRD KPI) needs a

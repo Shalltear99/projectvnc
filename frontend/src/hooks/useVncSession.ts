@@ -77,7 +77,7 @@ export function buildViewerSrc(info: ConnectInfo): string {
     // user sees an auth failure instead of a desktop.
     path: `${info.wsPath.replace(/^\/+/, '')}?token=${encodeURIComponent(info.token)}`,
     password: info.rfbPassword,
-    resize: 'scale',
+    resize: pickResizeMode(),
     autoconnect: 'true',
   });
 
@@ -94,6 +94,27 @@ export function buildViewerSrc(info: ConnectInfo): string {
   }
 
   return `/novnc/vnc_lite.html?${params.toString()}`;
+}
+
+/**
+ * Always ask the server to match this viewport.
+ *
+ * `remote` sends RFB SetDesktopSize, which TigerVNC honours through RandR, so
+ * the desktop becomes exactly the size of the canvas. The worker's
+ * fit-window.sh then scales the game to fill that geometry.
+ *
+ * This is deliberately unconditional rather than "remote only when portrait".
+ * The desktop size is server state shared by every client, so a size chosen for
+ * one client persists for the next: after a phone connected, a desktop browser
+ * was served a 374x624 portrait desktop. Having every client assert its own
+ * size makes the last connection win, which is the right behaviour for the
+ * single-user instances this platform provisions.
+ *
+ * scaleViewport is also enabled as a fallback: if the server ever refuses
+ * SetDesktopSize, the canvas still scales instead of overflowing.
+ */
+function pickResizeMode(): 'remote' {
+  return 'remote';
 }
 
 export function describeError(error: unknown): string {

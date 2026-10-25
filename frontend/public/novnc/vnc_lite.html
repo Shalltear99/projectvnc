@@ -169,7 +169,33 @@
 
         // Set parameters that can be changed on an active connection
         rfb.viewOnly = readQueryVariable('view_only', false);
-        rfb.scaleViewport = readQueryVariable('scale', false);
+
+        // CloudJava: `resize` selects how the remote desktop maps onto the
+        // client viewport.
+        //
+        //   scale  (default) - keep the server geometry, scale the framebuffer
+        //                      down to fit. On a portrait phone this leaves a
+        //                      16:9 desktop as a thin strip, so the game inside
+        //                      it is tiny.
+        //   remote           - ask the server to change its desktop size to the
+        //                      client viewport (RFB SetDesktopSize). TigerVNC
+        //                      honours it via RandR, so a portrait phone gets a
+        //                      portrait desktop and the game fills it.
+        //   off              - 1:1, scroll/drag.
+        //
+        // The old code read `scale` while the dashboard sent `resize=scale`, so
+        // neither scaling nor remote resize was ever enabled.
+        var resizeMode = readQueryVariable('resize', 'scale');
+        if (resizeMode === 'remote') {
+            rfb.resizeSession = true;
+            rfb.scaleViewport = true;
+        } else if (resizeMode === 'off') {
+            rfb.resizeSession = false;
+            rfb.scaleViewport = false;
+        } else {
+            rfb.resizeSession = false;
+            rfb.scaleViewport = true;
+        }
     </script>
 </head>
 
