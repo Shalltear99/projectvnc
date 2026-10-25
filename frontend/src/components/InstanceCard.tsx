@@ -98,7 +98,7 @@ export function InstanceCard({ instance, pending, onAction, onDelete }: Instance
           </h3>
         </div>
         <Link
-          href={`/instances/${encodeURIComponent(instance.id)}`}
+          href={`/dashboard/vnc/${encodeURIComponent(instance.id)}`}
           className={[
             'shrink-0 rounded-md border px-2.5 py-1 text-[12px] font-medium transition-colors',
             canLaunch

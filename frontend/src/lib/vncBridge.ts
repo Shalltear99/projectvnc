@@ -38,6 +38,12 @@ export const KEYSYMS = {
   KeyX: 0x78,
   KeyA: 0x61,
   KeyS: 0x73,
+  // Digit row, used by the mobile quick-skill bar. X11 keysyms for 1-4 are the
+  // ASCII code points, not the function-key range.
+  Digit1: 0x31,
+  Digit2: 0x32,
+  Digit3: 0x33,
+  Digit4: 0x34,
 } as const;
 
 export type GamepadKey = keyof typeof KEYSYMS;
@@ -62,6 +68,14 @@ export const DPAD_KEYS: readonly GamepadKeySpec[] = [
 export const ACTION_KEYS: readonly GamepadKeySpec[] = [
   { key: 'KeyA', label: 'A', glyph: 'A', ariaLabel: 'Action A' },
   { key: 'KeyS', label: 'B', glyph: 'B', ariaLabel: 'Action B' },
+];
+
+/** Quick-skill hotkeys (1-4) for the floating mobile bar. */
+export const HOTKEY_KEYS: readonly GamepadKeySpec[] = [
+  { key: 'Digit1', label: '1', glyph: '1', ariaLabel: 'Skill 1' },
+  { key: 'Digit2', label: '2', glyph: '2', ariaLabel: 'Skill 2' },
+  { key: 'Digit3', label: '3', glyph: '3', ariaLabel: 'Skill 3' },
+  { key: 'Digit4', label: '4', glyph: '4', ariaLabel: 'Skill 4' },
 ];
 
 /** Secondary row: the extra keysyms requested by the spec. */

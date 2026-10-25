@@ -8,6 +8,12 @@ export interface AppShellProps {
   children: ReactNode;
   /** Compact chrome for the viewer page: no page scroll, no footer. */
   flush?: boolean;
+  /**
+   * Hide the global nav entirely. Used by the session workspace, which brings
+   * its own status header and needs the vertical space on phones; the instance
+   * header carries the route back to the dashboard.
+   */
+  bare?: boolean;
   /** Right-hand slot in the header (e.g. a fullscreen toggle). */
   actions?: ReactNode;
 }
@@ -32,7 +38,7 @@ function Wordmark(): JSX.Element {
   );
 }
 
-export function AppShell({ children, flush = false, actions }: AppShellProps): JSX.Element {
+export function AppShell({ children, flush = false, bare = false, actions }: AppShellProps): JSX.Element {
   const { user, logout } = useAuth();
   const router = useRouter();
   const isDashboard = router.pathname === '/dashboard';
@@ -44,6 +50,7 @@ export function AppShell({ children, flush = false, actions }: AppShellProps): J
 
   return (
     <div className={flush ? 'flex h-[100dvh] flex-col overflow-hidden' : 'flex min-h-[100dvh] flex-col'}>
+      {bare ? null : (
       <header
         className={[
           'z-30 shrink-0 border-b border-white/5 bg-surface-base/80 backdrop-blur',
@@ -102,6 +109,7 @@ export function AppShell({ children, flush = false, actions }: AppShellProps): J
           </div>
         </div>
       </header>
+      )}
 
       <main className={flush ? 'min-h-0 flex-1' : 'flex-1'}>{children}</main>
 

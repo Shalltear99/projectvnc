@@ -48,7 +48,17 @@ export function normalizeMetrics(raw: unknown): InstanceMetrics {
   if (!root) {
     return ZERO;
   }
-  const data = asRecord(root.data) ?? asRecord(root.metrics) ?? root;
+  /*
+   * The live endpoint returns `{ instanceId, samples: [...] }` with samples in
+   * ascending time order, not a flat object. Without this unwrap every metric
+   * fell through to the zero default: CPU silently displayed "0%" (which looks
+   * like an idle instance) and RAM displayed nothing at all. Take the LAST
+   * sample — the newest one.
+   */
+  const samples = Array.isArray(root.samples) ? root.samples : null;
+  const latest = samples && samples.length > 0 ? asRecord(samples[samples.length - 1]) : null;
+
+  const data = latest ?? asRecord(root.data) ?? asRecord(root.metrics) ?? root;
 
   // Keys ending in "Bytes" carry byte values and must be converted to MB; all
   // other keys are already MB-valued. pickKey returns the key that matched.

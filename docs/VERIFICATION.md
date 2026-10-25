@@ -180,6 +180,32 @@ map, so the viewer sits at "Connecting" and gives up.
 - The integration suite binds port 4010. A leftover dev server on 4010 makes it
   fail with `EADDRINUSE` before the first assertion.
 
+## Workspace redesign (v2 UI)
+
+The instance page moved to `/dashboard/vnc/[instanceId]`; `/instances/[id]` is now
+a redirect. Defects found while building and exercising it:
+
+- **Metrics silently read as zero.** `/api/instances/:id/metrics` returns
+  `{ samples: [...] }`, but the normaliser only unwrapped `data`/`metrics` and
+  otherwise read the root. CPU rendered `0%` and RAM `—` while the API was
+  returning real numbers. A wrong-but-plausible `0%` is worse than an error, so
+  the normaliser now takes the last sample of `samples`.
+- **Stream permanently dead after Restart.** Re-minting the ticket inside the
+  action handler connected to a container that was still shutting down; the
+  socket opened and was killed at once, leaving "connection is closed" forever.
+  Reconnection is now an auto-heal effect gated on the API reporting the
+  instance `running`, capped at 4 attempts.
+- **`#top_bar` injection did nothing.** The iframe fires `load` while still on
+  `about:blank`; injecting the hide-chrome stylesheet there is lost when the
+  viewer document commits. Injection now polls until `#screen` exists.
+- **Plan label fell through to "Monthly".** `planId` is `plan_daily`, not
+  `daily`, so an equality check against `'daily'` never matched.
+- **`truncate` did not truncate.** A flex child will not shrink below its
+  content width; the long proxy path needed `min-w-0` alongside `truncate`.
+
+Hiding `#top_bar` also removes noVNC's own Ctrl+Alt+Del button, so the overlay
+carries a `CAD` button that calls `rfb.sendCtrlAltDel()`.
+
 ## Known limits
 
 - Single-node control plane; 50 concurrent streams per node (PRD KPI) needs a

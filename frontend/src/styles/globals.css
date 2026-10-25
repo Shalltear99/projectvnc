@@ -13,6 +13,11 @@
   --cj-card: #1e293b;
   --cj-accent: #6366f1;
   --cj-accent-strong: #4f46e5;
+  /* Cyber workspace (session view). */
+  --cj-cyber-bg: #0b0f17;
+  --cj-cyber-panel: #111827;
+  --cj-neon: #10b981;
+  --cj-electric: #3b82f6;
 }
 
 @layer base {
@@ -78,6 +83,30 @@
     @apply font-mono text-[13px] tabular-nums text-slate-300;
   }
 
+  /*
+   * Glassmorphism for controls that float ON TOP of the VNC canvas. Kept
+   * semi-transparent on purpose: the desktop underneath must stay readable, so
+   * these are controls, not panels.
+   */
+  .glass {
+    @apply border border-white/10 bg-black/60 backdrop-blur-md;
+  }
+
+  .glass-strong {
+    @apply border border-white/10 bg-black/75 backdrop-blur-xl;
+  }
+
+  /* Small square icon button used in the canvas overlay cluster. */
+  .overlay-btn {
+    @apply grid h-8 w-8 place-items-center rounded-lg border border-white/10 bg-black/60
+      text-slate-300 backdrop-blur-md transition-colors hover:bg-white/15 hover:text-white;
+  }
+
+  /* Cyber panel: the sidebar and header surfaces in the session workspace. */
+  .cyber-panel {
+    @apply rounded-xl border border-cyber-line bg-cyber-panel/90 shadow-inner-line;
+  }
+
   .grid-backdrop {
     background-image:
       linear-gradient(to right, rgba(148, 163, 184, 0.06) 1px, transparent 1px),
@@ -86,10 +115,44 @@
   }
 }
 
+/* Cyber workspace shell (session view). */
+.cyber-bg {
+  background-color: var(--cj-cyber-bg);
+  background-image:
+    radial-gradient(50rem 30rem at 50% -20%, rgba(16, 185, 129, 0.08), transparent 70%),
+    radial-gradient(40rem 24rem at 100% 0%, rgba(59, 130, 246, 0.06), transparent 65%);
+  background-repeat: no-repeat;
+}
+
 /* noVNC viewer surface: kill scrollbars / bounce inside the iframe frame. */
 .viewer-surface {
   background: #000;
   overscroll-behavior: none;
+}
+
+/*
+ * The noVNC canvas must fill the wrapper without ever showing scrollbars
+ * (design spec: scaleViewport, no scrollbars). noVNC sets inline width/height in
+ * px, so it has to be overridden with !important; `object-fit` is irrelevant for
+ * a canvas, the scale is done by noVNC's own scaleViewport.
+ */
+.vnc-canvas-fit canvas {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Hide scrollbars in the sidebar/sheet lists without losing scrolling. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 .viewer-surface iframe {

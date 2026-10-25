@@ -176,6 +176,22 @@ export async function listInstances(signal?: AbortSignal): Promise<Instance[]> {
   return Array.isArray(raw?.instances) ? raw.instances : [];
 }
 
+/**
+ * Single instance by id. 404s (NOT_FOUND) when it is not yours — the API
+ * deliberately answers 404 rather than 403 so ids are not enumerable.
+ */
+export async function getInstance(id: string, signal?: AbortSignal): Promise<Instance> {
+  const raw = await request<Instance | { instance?: Instance }>(
+    `/api/instances/${encodeURIComponent(id)}`,
+    { signal },
+  );
+  // Same envelope-tolerance as listInstances.
+  if (raw && typeof raw === 'object' && 'instance' in raw && raw.instance) {
+    return raw.instance;
+  }
+  return raw as Instance;
+}
+
 /** Returns a pending checkout session; provisioning happens on the webhook. */
 export function createInstance(input: CreateInstanceInput): Promise<CheckoutSession> {
   return request<CheckoutSession>('/api/instances', { method: 'POST', body: input });
