@@ -21,11 +21,19 @@ NGINX_DIR="${NGINX_DIR:-/tmp/cjrun}"
 mkdir -p "$RUN"
 
 if [ $# -ne 1 ]; then
-    echo "usage: $0 <domain>   |   $0 --local" >&2
+    echo "usage: $0 <domain> | --local | --same-origin" >&2
     exit 2
 fi
 
-if [ "$1" = "--local" ]; then
+# --same-origin builds the dashboard with relative /api urls, so the SAME build
+# works on any hostname that nginx fronts (tailnet name, raw tailnet IP,
+# localhost, a tunnel). Preferred over pinning one origin: nothing host-specific
+# is baked in, and there is no CORS surface at all.
+SAME_ORIGIN=0
+if [ "$1" = "--same-origin" ]; then
+    SAME_ORIGIN=1
+    ORIGIN="same-origin"
+elif [ "$1" = "--local" ]; then
     ORIGIN="http://127.0.0.1:8080"
 else
     # Accept a bare hostname or a full URL; normalise to https://host[:port].
@@ -61,13 +69,24 @@ NEXT_PUBLIC_API_BASE="$ORIGIN" npm run build > "$RUN/build.log" 2>&1 || {
     tail -20 "$RUN/build.log" >&2
     exit 1
 }
-# Prove the value actually made it into the bundle; a silent miss here is the
-# exact failure this script exists to prevent.
-if ! grep -rqs "$ORIGIN" .next/static/chunks/pages/; then
+# Prove the build is usable; a silent miss here is the exact failure this script
+# exists to prevent.
+#
+# Note: grepping the bundle for an absolute host is NOT a valid check in
+# same-origin mode — the dev fallback literal stays in the compiled output even
+# when the sentinel branch makes it dead code. So verify functionally instead:
+# the same nginx that serves the page must answer /api, which is what relative
+# urls depend on.
+if [ "$SAME_ORIGIN" = "1" ]; then
+    # Verified after startup instead — see the readiness block below. Checking
+    # here would fail, because the API was just stopped and nginx would 502.
+    echo "    relative /api urls (verified after startup)"
+elif ! grep -rqs "$ORIGIN" .next/static/chunks/pages/; then
     echo "!! $ORIGIN is not in the built bundle — refusing to start" >&2
     exit 1
+else
+    echo "    bundle contains the origin: ok"
 fi
-echo "    bundle contains the origin: ok"
 
 # --- start the API ------------------------------------------------------------
 echo "==> starting API on :4000"
@@ -107,6 +126,16 @@ echo "    web  :3000 -> ${fe:-no response}"
 if [ "$api" != "200" ] || [ "$fe" != "200" ]; then
     echo "!! services did not come up; see $RUN/api.log and $RUN/frontend.log" >&2
     exit 1
+fi
+
+# Same-origin builds depend on nginx answering /api on the page's origin.
+if [ "$SAME_ORIGIN" = "1" ]; then
+    via=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:8080/api/auth/me || true)
+    case "$via" in
+        401|200) echo "    /api via nginx -> $via (relative urls work)" ;;
+        *) echo "!! /api via nginx -> ${via:-none}; relative urls would 404" >&2
+           exit 1 ;;
+    esac
 fi
 
 cat <<EOF

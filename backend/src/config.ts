@@ -112,7 +112,11 @@ export const config = {
   isProd: env.NODE_ENV === 'production',
   port: env.PORT,
   logLevel: env.LOG_LEVEL,
-  publicBaseUrl: env.PUBLIC_BASE_URL.replace(/\/+$/, ''),
+  // `same-origin` means "we are served by the same nginx that proxies us, so
+  // build no absolute urls and reflect no CORS origin". Empty string is the
+  // sentinel the rest of the code checks for; see `config.publicBaseUrl === ''`.
+  publicBaseUrl:
+    env.PUBLIC_BASE_URL === 'same-origin' ? '' : env.PUBLIC_BASE_URL.replace(/\/+$/, ''),
 
   db: {
     driver: env.DATABASE_DRIVER,

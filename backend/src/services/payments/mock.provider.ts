@@ -40,7 +40,14 @@ export class MockPaymentProvider implements PaymentProvider {
       // provider reference and nothing else. `input.order` is a provisional
       // object whose id is never persisted, so embedding order.id here would
       // point the settlement page at an order that does not exist.
-      checkoutUrl: `${config.publicBaseUrl}/checkout/mock?ref=${encodeURIComponent(providerRef)}`,
+      //
+      // Same-origin deployments get a RELATIVE url on purpose: an absolute one
+      // would pin the redirect to whatever hostname the server was configured
+      // with, and a phone on a different host (tailnet IP vs ts.net name) would
+      // be sent somewhere it cannot reach.
+      checkoutUrl: config.publicBaseUrl
+        ? `${config.publicBaseUrl}/checkout/mock?ref=${encodeURIComponent(providerRef)}`
+        : `/checkout/mock?ref=${encodeURIComponent(providerRef)}`,
       expiresAt,
     };
   }

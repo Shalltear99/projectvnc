@@ -13,14 +13,31 @@ import { normalizeMetrics } from './metrics';
 /**
  * Base URL of the control-plane API.
  *
- * `??` is not enough here: an empty or whitespace-only value (a very easy CI or
- * docker-compose mistake — `NEXT_PUBLIC_API_BASE=`) is not nullish, so it would
- * survive and make every request relative. The browser would then call the
- * Next.js server, which has no /api routes, and every action would 404 with no
- * hint as to why. Treat blank as "unset".
+ * Two modes:
+ *
+ *  - `same-origin` (or `/`): emit RELATIVE urls (`/api/...`). Use this whenever
+ *    the app is served through the nginx front door, which proxies `/api/` and
+ *    the VNC websocket on the same origin as the dashboard. This is the mode to
+ *    prefer in any real deployment: nothing host-specific is baked into the
+ *    bundle, so the identical build works on a tailnet name, a raw tailnet IP,
+ *    localhost, or a tunnel hostname. It also makes requests same-origin, so no
+ *    CORS preflight or cookie cross-site rules are involved at all.
+ *
+ *  - an absolute origin (e.g. `https://vnc.example.com`): for split hosting,
+ *    where the dashboard and the API are genuinely different origins. The value
+ *    is inlined at BUILD time, so changing it requires a rebuild.
+ *
+ * An empty or whitespace-only value is treated as unset rather than as
+ * "relative": `NEXT_PUBLIC_API_BASE=` in a CI file used to produce relative
+ * urls against a server that has no /api routes, and every action failed with a
+ * bare 404. Blank now falls back to the documented dev default.
  */
 const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE?.trim();
-export const API_BASE = (RAW_API_BASE ? RAW_API_BASE : 'http://localhost:4000').replace(/\/+$/, '');
+const SAME_ORIGIN = RAW_API_BASE === 'same-origin' || RAW_API_BASE === '/';
+
+export const API_BASE = SAME_ORIGIN
+  ? ''
+  : (RAW_API_BASE ? RAW_API_BASE : 'http://localhost:4000').replace(/\/+$/, '');
 
 /** Error thrown for any non-2xx response, network failure or malformed body. */
 export class ApiError extends Error {
