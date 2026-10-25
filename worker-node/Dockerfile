@@ -27,6 +27,8 @@ ENV LANG=C.UTF-8 \
     VNC_PORT=5901 \
     WS_PORT=6080 \
     JAVA_ENV_VERSION=17 \
+    GAME_WINDOW_NAME=FreeJ2ME-Plus \
+    GAME_ASPECT=240x320 \
     HOME=/home/cloudjava
 
 # Full JREs, NOT -headless: the headless packages ship no libawt_xawt.so, so
@@ -91,6 +93,7 @@ COPY --chown=1000:1000 supervisord.conf /etc/supervisor/cloudjava.conf
 COPY --chown=1000:1000 entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY --chown=1000:1000 run-game.sh   /usr/local/bin/run-game.sh
 COPY --chown=1000:1000 center-windows.sh /usr/local/bin/center-windows.sh
+COPY --chown=1000:1000 fit-window.sh /usr/local/bin/fit-window.sh
 # Bundled game library. /opt/game is a per-instance volume, so it cannot be
 # populated at build time; defaults live here and the entrypoint seeds the
 # volume on first boot.
@@ -98,7 +101,7 @@ COPY --chown=1000:1000 games/ /opt/games-defaults/
 
 COPY --chown=1000:1000 openbox-rc.xml /etc/xdg/openbox/rc.xml
 RUN chmod 0755 /usr/local/bin/entrypoint.sh /usr/local/bin/run-game.sh \
-        /usr/local/bin/center-windows.sh
+        /usr/local/bin/center-windows.sh /usr/local/bin/fit-window.sh
 
 USER 1000:1000
 WORKDIR /home/cloudjava
